@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - Face
+  - Orange
+  - OrangeJuice
+  - Block
+  - apple
+  - SlicedApple
+  - orange
+  - orangejuice
+  - banana
+  - bananagroup
+  - sweetapple
+  - finalapple
+  - applepie
+  - orangecupcake
+  - orangeicecream
+  - bananapancake
+  - bananasplit
+  - icepop
+  - rainbowice
+  - mixicecream
+  - icecream
+  - icecream3
+  - castleicecream
+  - icecone
+  - flour
+  - bread
+  - toast
+  - clubsandwich
+  - cookie
+  - chocolatestack
+  - Pancookie
+  - smores
+  - cup
+  - blackcoffee
+  - latte
+  - icecoffee
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  m_RenderingLayers:
+  - Default
