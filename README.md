@@ -1,5 +1,6 @@
 <img width="1242" height="2688" alt="GitIMG" src="https://github.com/user-attachments/assets/1dce4972-6359-4c65-88dd-685cf9a22faa" />
-# Merges Chef 👨‍🍳🐾
+
+## Merges Chef 👨‍🍳🐾
 
 Welcome to the **Merges Chef** repository! This is a 2D Unity mobile game for iOS and Android where players merge items and interact with cute animal chefs. 
 
