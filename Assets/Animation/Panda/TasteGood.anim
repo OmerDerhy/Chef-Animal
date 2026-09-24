@@ -7,7 +7,7 @@ AnimationClip:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TasteGood
-  serializedVersion: 6
+  serializedVersion: 7
   m_Legacy: 0
   m_Compressed: 0
   m_UseHighQualityCurve: 1
@@ -18,11 +18,12 @@ AnimationClip:
   m_ScaleCurves: []
   m_FloatCurves: []
   m_PPtrCurves:
-  - curve:
+  - serializedVersion: 2
+    curve:
     - time: 0
       value: {fileID: 21300000, guid: 7f5990e79c52bbe48bb1541d76991b87, type: 3}
     - time: 0.6666667
-      value: {fileID: 21300000, guid: 5610ef49251d280498be7b96d667ff7c, type: 3}
+      value: {fileID: 21300000, guid: 7f5990e79c52bbe48bb1541d76991b87, type: 3}
     - time: 0.75
       value: {fileID: 21300000, guid: a0e8ffefd94f8f447a6974504eb7f6e3, type: 3}
     - time: 3
@@ -31,6 +32,7 @@ AnimationClip:
     path: 
     classID: 212
     script: {fileID: 0}
+    flags: 2
   m_SampleRate: 60
   m_WrapMode: 0
   m_Bounds:
@@ -45,9 +47,11 @@ AnimationClip:
       typeID: 212
       customType: 23
       isPPtrCurve: 1
+      isIntCurve: 0
+      isSerializeReferenceCurve: 0
     pptrCurveMapping:
     - {fileID: 21300000, guid: 7f5990e79c52bbe48bb1541d76991b87, type: 3}
-    - {fileID: 21300000, guid: 5610ef49251d280498be7b96d667ff7c, type: 3}
+    - {fileID: 21300000, guid: 7f5990e79c52bbe48bb1541d76991b87, type: 3}
     - {fileID: 21300000, guid: a0e8ffefd94f8f447a6974504eb7f6e3, type: 3}
     - {fileID: 21300000, guid: a0e8ffefd94f8f447a6974504eb7f6e3, type: 3}
   m_AnimationClipSettings:

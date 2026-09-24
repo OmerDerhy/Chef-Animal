@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 1.53, y: 3.1, z: 0}
-  m_LocalScale: {x: 0.22, y: 0.22, z: 1}
+  m_LocalScale: {x: 0.18, y: 0.18, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5356967242822917705}
@@ -139,7 +139,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 4, y: 4}
+  m_Size: {x: 5, y: 5}
   m_EdgeRadius: 0
 --- !u!114 &5329939523915588140
 MonoBehaviour:
@@ -157,6 +157,7 @@ MonoBehaviour:
   target: {fileID: 5627554565552830824}
   clickSound: {fileID: 0}
   clickSound2: {fileID: 0}
+  clickSound3: {fileID: 0}
 --- !u!114 &5627554565552830824
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169,11 +170,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4220142eecc954999907e81afaa1319d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Target
+  isRareFace: 0
   objectsArray: []
   iconContainer: {fileID: 3887276156593325440}
   iconPrefab: {fileID: 873834910472080680, guid: a4cb8bd6b46ca453da9385ad33aaa270, type: 3}
+  coinTextPrefab: {fileID: 8776543719418672452, guid: 4eb89e921603f4ee6bde79b5075bac13, type: 3}
+  gemTextPrefab: {fileID: 8776543719418672452, guid: fbb86f95b13424342997b10656327f71, type: 3}
+  successIconPrefab: {fileID: 0}
+  successIconScale: 1
+  successIconYOffset: 0.6
   iconSize: 0.55
   iconSpacing: -0.1
+  tutorialFingerPrefab: {fileID: 7112045949577452974, guid: ff2e2266cce8845f1890472490e474f6, type: 3}
+  parentSpawner: {fileID: 0}
 --- !u!95 &4979522285558187887
 Animator:
   serializedVersion: 7
@@ -256,7 +265,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 4
+  m_SortingOrder: 7
   m_TargetDisplay: 0
 --- !u!114 &7183539504947100279
 MonoBehaviour:

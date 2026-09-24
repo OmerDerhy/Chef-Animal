@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55c7e87f916044ef2bac2fe943537a6e, type: 3}
+  m_Name: Ice Cream 3
+  m_EditorClassIdentifier: Assembly-CSharp::MergesChef.Map.Dish
+  dishName: Ice Cream 3
+  icon: {fileID: 7361243034102748664, guid: 00cd08f81fab74656b0f328c9984c3f3, type: 3}
+  cost: 100
+  revenuePerDish: 28
+  timeToCook: 20
+  amountOfDishes: 4
+  requiredLevel: 2

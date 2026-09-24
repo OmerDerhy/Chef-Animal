@@ -17,3 +17,15 @@ UserSettings/
 *.pdb
 *.opendb
 *.VC.db
+
+# OS
+.DS_Store
+
+# Build outputs / signing / crash dumps
+.utmp/
+*.apk
+*.aab
+*.keystore
+mono_crash.*.json
+*_BurstDebugInformation_DoNotShip/
+*_BackUpThisFolder_ButDontShipItWithYourGame/
