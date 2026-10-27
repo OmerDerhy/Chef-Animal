@@ -81,7 +81,27 @@ namespace MergesChef.Characters
                 animationTimer = 0f;
                 currentFrame = (currentFrame + 1) % currentAnim.Length;
                 spriteRenderer.sprite = currentAnim[currentFrame];
+                RecenterVisualOnSprite();
             }
+        }
+
+        /// <summary>
+        /// Cancels out the active sprite's own vertical pivot offset when the SpriteRenderer lives on a
+        /// separate child transform (not this Animal's own root) - some poses (notably the "sitting"
+        /// sprites) were authored with their pivot at inconsistent heights across species, which made a
+        /// seated character render a bit higher or lower purely depending on which species' art was
+        /// showing, even though the underlying seat position never moved. A no-op for any Animal whose
+        /// SpriteRenderer is still on the root transform, since moving that transform would also move
+        /// this Animal's actual gameplay position (used for pathing and "did my seat move" checks).
+        /// </summary>
+        private void RecenterVisualOnSprite()
+        {
+            if (spriteRenderer.transform == transform) return;
+            if (spriteRenderer.sprite == null) return;
+
+            Vector3 pos = spriteRenderer.transform.localPosition;
+            pos.y = -spriteRenderer.sprite.bounds.center.y;
+            spriteRenderer.transform.localPosition = pos;
         }
 
         private void HandleMovement()
@@ -175,13 +195,19 @@ namespace MergesChef.Characters
 
         public override void UpdateSortingOrder()
         {
-            // Characters are highly dynamic, so they use a base offset of 25000 to 
-            // ensure they always render above flat floor tiles and properly interlace with accessories
-            ApplySortingOrder(0, 0, 25000); 
+            ApplySortingOrder(0, 0, 25000);
         }
 
         // Abstract method for unique subclass logic (State Machine)
         protected abstract void UpdateLogic();
+
+        /// <summary>
+        /// Hides/shows any floating status icon (star, heart, coin...) this character owns. Overridden
+        /// by subclasses that actually have one - a no-op here since Animal itself owns none. Needed
+        /// because those icons live on their own root GameObject (see FloatingStatusIcon's doc comment),
+        /// so deactivating this character's own GameObject (e.g. entering Build Mode) doesn't touch them.
+        /// </summary>
+        public virtual void SetStatusIconsVisible(bool visible) { }
 
         // Called automatically when MoveTo finishes
         protected virtual void OnReachedDestination() { }

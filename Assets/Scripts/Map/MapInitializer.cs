@@ -5,15 +5,63 @@ namespace MergesChef.Map
 {
     public class MapInitializer : MonoBehaviour
     {
+        public static MapInitializer Instance { get; private set; }
+
         public Map mapManager; // Drag your MapManager GameObject here
-        
+
         [Header("Visual Prefabs")]
-        public GameObject restaurantPrefab;
-        public GameObject kitchenPrefab;
+        public GameObject restaurantPrefab;        // Level 1
+        public GameObject restaurantLevel2Prefab;
+        public GameObject restaurantLevel3Prefab;
+        public GameObject kitchenPrefab;           // Level 1
+        public GameObject kitchenLevel2Prefab;     // Kitchen tops out at 2 for now
         public GameObject tablePrefab;
         public GameObject chairPrefab;
         public GameObject ovenPrefab;
         public GameObject iceCreamMachinePrefab;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
+        /// <summary>The visual prefab for an area of this type at this level, falling back to the
+        /// highest level actually configured (so upgrading never ends up with a null visual).</summary>
+        public GameObject GetAreaPrefab(AreaType type, int level)
+        {
+            if (type == AreaType.Kitchen)
+            {
+                if (level >= 2 && kitchenLevel2Prefab != null) return kitchenLevel2Prefab;
+                return kitchenPrefab;
+            }
+
+            if (level >= 3 && restaurantLevel3Prefab != null) return restaurantLevel3Prefab;
+            if (level >= 2 && restaurantLevel2Prefab != null) return restaurantLevel2Prefab;
+            return restaurantPrefab;
+        }
+
+        /// <summary>
+        /// Swaps an already-placed area's visual GameObject for the one matching its current level
+        /// (each level is a distinct prefab, not a sprite swap) - used by AreaBase.Upgrade().
+        /// </summary>
+        public void RebuildAreaVisual(AreaBase area)
+        {
+            GameObject newPrefab = GetAreaPrefab(area.Type, area.Level);
+            if (newPrefab == null) return;
+
+            GameObject oldVisual = area.VisualModel;
+            Vector3 worldPosition = oldVisual != null
+                ? oldVisual.transform.position
+                : (mapManager != null ? mapManager.GridToWorldPosition(area.Position) : Vector3.zero);
+
+            GameObject newVisual = Instantiate(newPrefab, worldPosition, Quaternion.identity);
+            area.BindVisual(newVisual);
+
+            if (oldVisual != null) Destroy(oldVisual);
+
+            // Re-apply the correct wall-state piece and sorting order on the fresh visual.
+            if (mapManager != null) mapManager.UpdateMapVisuals();
+        }
 
         private void Start()
         {
@@ -183,7 +231,7 @@ namespace MergesChef.Map
 
         private void CreateRestaurantArea(Vector2Int gridPosition, AreaType areaType)
         {
-            GameObject prefabToUse = (areaType == AreaType.Kitchen && kitchenPrefab != null) ? kitchenPrefab : restaurantPrefab;
+            GameObject prefabToUse = GetAreaPrefab(areaType, 1);
             if (prefabToUse == null)
             {
                 Debug.LogWarning("Required Area Prefab is not assigned in MapInitializer.");
@@ -205,7 +253,7 @@ namespace MergesChef.Map
 
         private void CreateRestaurantAreaForLoad(Vector2Int gridPosition, int savedLevel, AreaType areaType)
         {
-            GameObject prefabToUse = (areaType == AreaType.Kitchen && kitchenPrefab != null) ? kitchenPrefab : restaurantPrefab;
+            GameObject prefabToUse = GetAreaPrefab(areaType, savedLevel);
             if (prefabToUse == null)
             {
                 Debug.LogWarning("Required Area Prefab is not assigned in MapInitializer.");

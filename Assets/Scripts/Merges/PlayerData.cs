@@ -39,7 +39,8 @@ public class PlayerData : MonoBehaviour
     private const string KEY_AD_LIGHTS_TIME = "Save_LastAdForLightsTime"; // <--- AD FOR LIGHTS KEY
     private const string KEY_AD_MYSTERY_GIFT_TIME = "Save_LastAdForMysteryGiftTime"; // <--- AD FOR MYSTERY GIFT KEY
     private const string KEY_MAP_DATA = "Save_MapData"; // Map save string
-    
+    private const string KEY_STAFF_DATA = "Save_StaffData"; // Comma-separated staff prefab names
+
     public void SaveMapData(string json)
     {
         PlayerPrefs.SetString(KEY_MAP_DATA, json);
@@ -49,6 +50,17 @@ public class PlayerData : MonoBehaviour
     public string LoadMapData()
     {
         return PlayerPrefs.GetString(KEY_MAP_DATA, "");
+    }
+
+    public void SaveStaffData(string csv)
+    {
+        PlayerPrefs.SetString(KEY_STAFF_DATA, csv);
+        PlayerPrefs.Save();
+    }
+
+    public string LoadStaffData()
+    {
+        return PlayerPrefs.GetString(KEY_STAFF_DATA, "");
     }
     
     void Awake()

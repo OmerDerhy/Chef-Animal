@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using MergesChef.Map;
+using MergesChef.Feel;
 
 namespace MergesChef.UI
 {
@@ -32,6 +33,7 @@ namespace MergesChef.UI
         {
             if (cookingPanel != null) cookingPanel.SetActive(false);
             if (closeButton != null) closeButton.onClick.AddListener(ClosePanel);
+            JuicyButton.Attach(closeButton);
         }
 
         public void OpenPanel(KitchenAccessoryVisual accessory)
@@ -40,7 +42,7 @@ namespace MergesChef.UI
             
             currentAccessory = accessory;
 
-            if (cookingPanel != null) cookingPanel.SetActive(true);
+            if (cookingPanel != null) UIPopAnimator.Show(cookingPanel);
 
             PopulateRecipes(accessory.availableDishes);
             
@@ -57,7 +59,7 @@ namespace MergesChef.UI
 
         public void ClosePanel()
         {
-            if (cookingPanel != null) cookingPanel.SetActive(false);
+            if (cookingPanel != null) UIPopAnimator.Hide(cookingPanel);
             currentAccessory = null;
         }
 
@@ -76,6 +78,7 @@ namespace MergesChef.UI
             }
 
             // Spawn new buttons
+            int recipeIndex = 0;
             foreach (Dish dish in dishes)
             {
                 if (dish == null) continue;
@@ -84,6 +87,10 @@ namespace MergesChef.UI
                 
                 // Force the scale back to normal so it doesn't spawn invisible
                 btnObj.transform.localScale = Vector3.one;
+
+                // Cascade the recipe list in (captures the scale set on the line above as its rest pose).
+                Juice.PopInListItem(btnObj, Juice.StaggerDelay(recipeIndex));
+                recipeIndex++;
                 // We leave localPosition alone because the Vertical Layout Group handles positioning
 
                 RecipeButtonUI ui = btnObj.GetComponent<RecipeButtonUI>();
@@ -124,6 +131,7 @@ namespace MergesChef.UI
 
                     if (ui.cookButton != null)
                     {
+                        JuicyButton.Attach(ui.cookButton);
                         ui.cookButton.interactable = !isLocked;
                         if (!isLocked)
                         {

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using MergesChef.Feel;
 
 namespace MergesChef.UI
 {
@@ -148,6 +149,14 @@ namespace MergesChef.UI
             {
                 watchAdButton.onClick.AddListener(OnWatchAdForMysteryGift);
             }
+
+            // Press feedback for every button this panel owns. Added in code so the existing
+            // prefabs and their onClick wiring stay untouched.
+            JuicyButton.Attach(openButton, closeButton,
+                               kitchenCategoryButton, restaurantCategoryButton, floorCategoryButton,
+                               starsCategoryButton, animalsCategoryButton,
+                               confirmBuyButton, confirmCancelButton,
+                               spendGemsButton, watchAdButton, mysteryGiftCancelButton);
         }
 
         private void RecordOriginalPosition(Button btn)
@@ -167,18 +176,20 @@ namespace MergesChef.UI
             // Reset all buttons to original positions
             foreach (var kvp in originalButtonPositions)
             {
-                if (kvp.Key != null)
+                if (kvp.Key != null && kvp.Key != selectedBtn)
                 {
-                    RectTransform rect = kvp.Key.GetComponent<RectTransform>();
-                    rect.anchoredPosition = kvp.Value;
+                    // The Button is the tween id; it is never a tween target itself, so killing by it
+                    // can't clobber the press-scale tween living on the same transform.
+                    Juice.SlideAnchored(kvp.Key.GetComponent<RectTransform>(), kvp.Value, 0.22f, kvp.Key);
                 }
             }
 
             // Move the selected button slightly to the right
             if (selectedBtn != null && originalButtonPositions.ContainsKey(selectedBtn))
             {
-                RectTransform rect = selectedBtn.GetComponent<RectTransform>();
-                rect.anchoredPosition = originalButtonPositions[selectedBtn] + new Vector2(selectedButtonOffset, 0);
+                Juice.SlideAnchored(selectedBtn.GetComponent<RectTransform>(),
+                                    originalButtonPositions[selectedBtn] + new Vector2(selectedButtonOffset, 0),
+                                    0.22f, selectedBtn);
             }
         }
 
@@ -186,7 +197,7 @@ namespace MergesChef.UI
         {
             if (marketPanel != null)
             {
-                marketPanel.SetActive(true);
+                UIPopAnimator.Show(marketPanel);
                 // Optionally show the first category by default when opening
                 LoadCategoryItems(kitchenItems, kitchenCategoryButton);
             }
@@ -196,7 +207,7 @@ namespace MergesChef.UI
         {
             if (marketPanel != null)
             {
-                marketPanel.SetActive(false);
+                UIPopAnimator.Hide(marketPanel);
             }
             CloseConfirmationPanel();
             CloseMysteryGiftPurchasePanel();
@@ -221,6 +232,7 @@ namespace MergesChef.UI
             // 2. Spawn new items for the selected category
             if (itemsToLoad != null)
             {
+                int index = 0;
                 foreach (MarketItemData item in itemsToLoad)
                 {
                     GameObject spawnedItem = Instantiate(itemPrefab, contentContainer);
@@ -233,6 +245,10 @@ namespace MergesChef.UI
                     {
                         Debug.LogWarning("[MarketUIManager] The itemPrefab is missing the MarketItemUI component!");
                     }
+
+                    // Cascade the list in rather than having it appear all at once.
+                    Juice.PopInListItem(spawnedItem, Juice.StaggerDelay(index));
+                    index++;
                 }
             }
         }
@@ -249,7 +265,7 @@ namespace MergesChef.UI
 
             if (confirmationPanel != null)
             {
-                confirmationPanel.SetActive(true);
+                UIPopAnimator.Show(confirmationPanel);
 
                 if (confirmNameText != null) confirmNameText.text = itemData.itemName;
                 if (confirmPriceText != null) confirmPriceText.text = itemData.price.ToString();
@@ -266,7 +282,7 @@ namespace MergesChef.UI
         {
             if (confirmationPanel != null)
             {
-                confirmationPanel.SetActive(false);
+                UIPopAnimator.Hide(confirmationPanel);
             }
         }
 
@@ -274,7 +290,7 @@ namespace MergesChef.UI
         {
             if (mysteryGiftPurchasePanel == null) return;
 
-            mysteryGiftPurchasePanel.SetActive(true);
+            UIPopAnimator.Show(mysteryGiftPurchasePanel);
 
             if (mysteryGiftPriceText != null) mysteryGiftPriceText.text = itemData.price.ToString();
 
@@ -298,7 +314,7 @@ namespace MergesChef.UI
         {
             if (mysteryGiftPurchasePanel != null)
             {
-                mysteryGiftPurchasePanel.SetActive(false);
+                UIPopAnimator.Hide(mysteryGiftPurchasePanel);
             }
         }
 
@@ -346,7 +362,8 @@ namespace MergesChef.UI
                 if (!PlayerData.Instance.SpendCoins(currentSelectedItem.price))
                 {
                     Debug.LogWarning("[Market] Not enough coins!");
-                    CloseConfirmationPanel();
+                    // Shake the price instead of closing silently, so the refusal is legible.
+                    if (confirmPriceText != null) Juice.Shake(confirmPriceText.transform, 12f, 0.35f, unscaled: true);
                     return;
                 }
             }

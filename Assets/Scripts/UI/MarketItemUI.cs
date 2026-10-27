@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using MergesChef.Feel;
 
 namespace MergesChef.UI
 {
@@ -41,6 +42,7 @@ namespace MergesChef.UI
 
             if (mainButton != null)
             {
+                JuicyButton.Attach(mainButton);
                 mainButton.onClick.RemoveAllListeners();
                 mainButton.onClick.AddListener(() => OnBlockClicked(itemData));
             }

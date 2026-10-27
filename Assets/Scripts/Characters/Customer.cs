@@ -22,13 +22,27 @@ namespace MergesChef.Characters
         public float eatingDuration = 5f;
         public int coinReward = 15;
         public bool isFoodOnTheWay = false;
+        [Tooltip("Sitting scale as a fraction of this customer's own walking scale (not an absolute size) - so every species shrinks by the same proportion when they sit, regardless of how big their own art is.")]
+        public float sittingScaleFactor = 0.8f;
+
+        [Header("Eating & Reward Icons")]
+        [Tooltip("Shown above the customer's head, breathing gently, while they eat.")]
+        public Sprite eatingHeartSprite;
+        [Tooltip("Popped up above the customer's head once they finish eating, as a reward cue.")]
+        public Sprite rewardCoinSprite;
+        [Tooltip("World-space size of the eating/reward icons.")]
+        public Vector3 statusIconScale = new Vector3(0.20f, 0.20f, 1f);
+        [Tooltip("How far above the customer's own position (world units) the icon sits.")]
+        public float statusIconHeightOffset = 0.26f;
+
+        private FloatingStatusIcon eatingHeart;
 
         private float eatingTimer = 0f;
         private Vector3 exitPosition;
         private Chair targetChair;
         public AccessoryVisual targetChairVisual { get; private set; } // Exposed so Staff knows where to deliver
         
-        private Vector3 originalScale;
+        // originalScale is inherited from SortableVisual, which caches it in Awake.
 
         // Test variables
         private float wanderWaitTimer = 0f;
@@ -121,10 +135,13 @@ namespace MergesChef.Characters
                         if (!isMoving && Vector3.Distance(transform.position, targetChair.SeatPosition) > 0.1f)
                         {
                             currentState = CustomerState.WalkingToSeat;
+                            HideEatingHeart();
                             FindAndMoveTo(targetChair.SeatPosition);
                             break;
                         }
                     }
+
+                    if (eatingHeart != null) eatingHeart.SetPosition(StatusIconWorldPosition());
 
                     eatingTimer += Time.deltaTime;
                     if (eatingTimer >= eatingDuration)
@@ -144,7 +161,15 @@ namespace MergesChef.Characters
             if (currentState == CustomerState.WalkingToSeat)
             {
                 currentState = CustomerState.WaitingForFood;
-                
+
+                // Pathfinding only walks to the nearest WALKABLE SUBGRID CELL CENTER, not the chair's
+                // exact SeatPoint (which can sit anywhere within that cell) - snap the last, fine-grained
+                // distance directly so the customer always ends up exactly on SeatPoint, not just close.
+                if (targetChair != null)
+                {
+                    transform.position = targetChair.SeatPosition;
+                }
+
                 // NOTE: Sprites in the Inspector are assigned swapped:
                 //   sitBackSprites = actual FRONT sprites
                 //   sitFrontSprites = actual BACK sprites
@@ -168,8 +193,9 @@ namespace MergesChef.Characters
                     spriteRenderer.transform.localEulerAngles = new Vector3(0f, chairYRot, 0f);
                 }
                 
-                // Shrink to sitting scale
-                transform.localScale = new Vector3(0.04f, 0.04f, 0.04f);
+                // Shrink to sitting scale, relative to THIS customer's own walking scale - a hardcoded
+                // absolute size here shrank taller species (Penguin, Bear) far more than shorter ones.
+                transform.localScale = originalScale * sittingScaleFactor;
 
                 Debug.Log($"{gameObject.name} sat down and is waiting for food.");
             }
@@ -192,6 +218,7 @@ namespace MergesChef.Characters
                 Debug.Log($"{gameObject.name} received food and is now eating!");
                 currentState = CustomerState.Eating;
                 eatingTimer = 0f;
+                ShowEatingHeart();
             }
         }
 
@@ -204,7 +231,8 @@ namespace MergesChef.Characters
             }
 
             Debug.Log($"{gameObject.name} finished eating. Dropping {coinReward} coins.");
-            // Instantiate coins here...
+            HideEatingHeart();
+            ShowRewardCoin();
 
             // Restore original scale and rotation so the customer walks normally
             transform.localScale = originalScale;
@@ -216,8 +244,45 @@ namespace MergesChef.Characters
             currentState = CustomerState.PayingAndLeaving;
             FindAndMoveTo(exitPosition);
         }
+
+        private Vector3 StatusIconWorldPosition()
+        {
+            return transform.position + Vector3.up * statusIconHeightOffset;
+        }
+
+        private void ShowEatingHeart()
+        {
+            if (eatingHeartSprite == null) return;
+
+            HideEatingHeart(); // defensive: never leave a stray heart if this is somehow called twice
+            eatingHeart = FloatingStatusIcon.Create(eatingHeartSprite, StatusIconWorldPosition(), statusIconScale);
+            eatingHeart.PlayBreathing();
+        }
+
+        private void HideEatingHeart()
+        {
+            if (eatingHeart == null) return;
+            eatingHeart.StopAndDestroy();
+            eatingHeart = null;
+        }
+
+        private void ShowRewardCoin()
+        {
+            if (rewardCoinSprite == null) return;
+
+            FloatingStatusIcon coin = FloatingStatusIcon.Create(rewardCoinSprite, StatusIconWorldPosition(), statusIconScale);
+            coin.PlayRewardPopAndDestroy();
+        }
+
+        public override void SetStatusIconsVisible(bool visible)
+        {
+            if (eatingHeart != null) eatingHeart.SetVisible(visible);
+        }
+
         private void OnDestroy()
         {
+            HideEatingHeart();
+
             if (targetChair != null)
             {
                 targetChair.IsOccupied = false;

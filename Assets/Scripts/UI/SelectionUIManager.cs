@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using MergesChef.Map;
+using MergesChef.Feel;
 
 namespace MergesChef.UI
 {
@@ -45,6 +46,9 @@ namespace MergesChef.UI
 
             if (confirmUpgradeButton != null) confirmUpgradeButton.onClick.AddListener(ConfirmUpgrade);
             if (cancelUpgradeButton != null) cancelUpgradeButton.onClick.AddListener(CloseUpgradePanel);
+
+            JuicyButton.Attach(upgradeButton, cookButton, flipButton,
+                               confirmUpgradeButton, cancelUpgradeButton);
         }
 
         public void ShowPanel(AccessoryVisual accessory, AreaVisual area)
@@ -52,9 +56,9 @@ namespace MergesChef.UI
             currentAccessory = accessory;
             currentArea = area;
 
-            if (selectionPanel != null) selectionPanel.SetActive(true);
+            if (selectionPanel != null) UIPopAnimator.Show(selectionPanel);
             if (upgradeButton != null) upgradeButton.gameObject.SetActive(true);
-            if (upgradeConfirmationPanel != null) upgradeConfirmationPanel.SetActive(false);
+            if (upgradeConfirmationPanel != null) UIPopAnimator.Hide(upgradeConfirmationPanel);
 
             // Show Cook button only if it's a Kitchen Accessory. Flip is Build Mode only (see ShowBuildModeFlip).
             bool isKitchenAccessory = accessory != null && accessory is KitchenAccessoryVisual;
@@ -79,11 +83,15 @@ namespace MergesChef.UI
 
             bool isKitchenAccessory = accessory != null && accessory is KitchenAccessoryVisual;
 
-            if (selectionPanel != null) selectionPanel.SetActive(isKitchenAccessory);
+            if (selectionPanel != null)
+            {
+                if (isKitchenAccessory) UIPopAnimator.Show(selectionPanel);
+                else UIPopAnimator.Hide(selectionPanel);
+            }
             if (upgradeButton != null) upgradeButton.gameObject.SetActive(false);
             if (cookButton != null) cookButton.gameObject.SetActive(false);
             if (flipButton != null) flipButton.gameObject.SetActive(isKitchenAccessory);
-            if (upgradeConfirmationPanel != null) upgradeConfirmationPanel.SetActive(false);
+            if (upgradeConfirmationPanel != null) UIPopAnimator.Hide(upgradeConfirmationPanel);
         }
 
         /// <summary>
@@ -95,30 +103,30 @@ namespace MergesChef.UI
             currentAccessory = null;
             currentArea = area;
 
-            if (selectionPanel != null) selectionPanel.SetActive(false);
+            if (selectionPanel != null) UIPopAnimator.Hide(selectionPanel);
             if (upgradeButton != null) upgradeButton.gameObject.SetActive(false);
             if (cookButton != null) cookButton.gameObject.SetActive(false);
             if (flipButton != null) flipButton.gameObject.SetActive(false);
-            if (upgradeConfirmationPanel != null) upgradeConfirmationPanel.SetActive(false);
+            if (upgradeConfirmationPanel != null) UIPopAnimator.Hide(upgradeConfirmationPanel);
         }
 
         public void HidePanel()
         {
             currentAccessory = null;
             currentArea = null;
-            if (selectionPanel != null) selectionPanel.SetActive(false);
+            if (selectionPanel != null) UIPopAnimator.Hide(selectionPanel);
             if (upgradeButton != null) upgradeButton.gameObject.SetActive(false);
             if (cookButton != null) cookButton.gameObject.SetActive(false);
             if (flipButton != null) flipButton.gameObject.SetActive(false);
-            if (upgradeConfirmationPanel != null) upgradeConfirmationPanel.SetActive(false);
+            if (upgradeConfirmationPanel != null) UIPopAnimator.Hide(upgradeConfirmationPanel);
         }
 
         private void OnUpgradeClicked()
         {
             if (upgradeConfirmationPanel != null)
             {
-                upgradeConfirmationPanel.SetActive(true);
-                
+                UIPopAnimator.Show(upgradeConfirmationPanel);
+
                 string targetName = "Object";
                 int currentLevel = 1;
                 int upgradeCost = 0;
@@ -146,9 +154,25 @@ namespace MergesChef.UI
                     targetName = currentArea.LinkedArea.GetType().Name;
                     currentLevel = currentArea.LinkedArea.Level;
                     upgradeCost = currentArea.LinkedArea.CostToUpgrade;
-                    
-                    var spriteRenderer = currentArea.GetComponentInChildren<SpriteRenderer>();
-                    if (spriteRenderer != null) targetSprite = spriteRenderer.sprite;
+
+                    // Preview the NEXT level's floor art - each level is its own prefab, so peek at
+                    // that prefab asset's sprite directly without instantiating it.
+                    if (MapInitializer.Instance != null)
+                    {
+                        GameObject nextPrefab = MapInitializer.Instance.GetAreaPrefab(currentArea.LinkedArea.Type, currentLevel + 1);
+                        if (nextPrefab != null)
+                        {
+                            var nextRenderer = nextPrefab.GetComponentInChildren<SpriteRenderer>(true);
+                            if (nextRenderer != null) targetSprite = nextRenderer.sprite;
+                        }
+                    }
+
+                    // Fallback to current sprite if there is no next level art configured.
+                    if (targetSprite == null)
+                    {
+                        var spriteRenderer = currentArea.GetComponentInChildren<SpriteRenderer>();
+                        if (spriteRenderer != null) targetSprite = spriteRenderer.sprite;
+                    }
                 }
 
                 if (upgradeTargetText != null)
@@ -207,7 +231,8 @@ namespace MergesChef.UI
             if (PlayerData.Instance != null && !PlayerData.Instance.SpendCoins(cost))
             {
                 Debug.LogWarning("[SelectionUIManager] Not enough coins to upgrade!");
-                CloseUpgradePanel();
+                // Shake the price rather than closing silently, so the refusal is legible.
+                if (upgradePriceText != null) Juice.Shake(upgradePriceText.transform, 12f, 0.35f, unscaled: true);
                 return;
             }
 
@@ -228,7 +253,7 @@ namespace MergesChef.UI
 
         private void CloseUpgradePanel()
         {
-            if (upgradeConfirmationPanel != null) upgradeConfirmationPanel.SetActive(false);
+            if (upgradeConfirmationPanel != null) UIPopAnimator.Hide(upgradeConfirmationPanel);
         }
     }
 }

@@ -87,10 +87,15 @@ namespace MergesChef.Map
             }
 
             // Enable/disable all animals
+            bool isPlayMode = mode == GameMode.PlayMode;
             var animals = FindObjectsOfType<Characters.Animal>(true);
             foreach (var animal in animals)
             {
-                animal.gameObject.SetActive(mode == GameMode.PlayMode);
+                // Status icons (star, heart...) live on their own un-parented root GameObject (see
+                // FloatingStatusIcon's doc comment), so deactivating the character alone leaves them
+                // floating visibly in place - toggle them explicitly before/alongside it.
+                animal.SetStatusIconsVisible(isPlayMode);
+                animal.gameObject.SetActive(isPlayMode);
             }
         }
 
@@ -115,19 +120,57 @@ namespace MergesChef.Map
             return new Vector2Int(Mathf.RoundToInt(worldPos.x), Mathf.RoundToInt(worldPos.y)); // Fallback
         }
 
+        /// <summary>
+        /// Read-only mirror of the occupancy rule inside <see cref="TryMoveArea"/>, so the drag preview
+        /// can colour the cell under the finger without mutating anything.
+        /// </summary>
+        public bool CanPlaceAreaAt(AreaBase area, Vector2Int newPos)
+        {
+            if (area == null) return false;
+            return !grid.TryGetValue(newPos, out AreaBase occupant) || occupant == area;
+        }
+
+        /// <summary>Read-only mirror of the rules inside <see cref="TryMoveAccessory"/>.</summary>
+        public bool CanPlaceAccessoryAt(AccessoryBase accessory, Vector2Int newPos, Vector2Int subGridPos)
+        {
+            if (accessory == null) return false;
+
+            AreaBase targetArea = GetAreaAt(newPos);
+            if (!accessory.IsPlacementValid(targetArea, subGridPos)) return false;
+
+            AccessoryBase occupant = GetAccessoryAtGlobal(ToGlobalSubGrid(newPos, subGridPos));
+            return occupant == null || occupant == accessory;
+        }
+
         public bool TryMoveArea(AreaBase area, Vector2Int newPos)
         {
-
-
-            // Check if the new position is already occupied
-            if (grid.ContainsKey(newPos))
+            // Occupied by something else. Dropping an area back onto its own cell is a valid no-op,
+            // which is what lets the player pick a building up and change their mind.
+            if (grid.TryGetValue(newPos, out AreaBase occupant) && occupant != area)
             {
                 Debug.LogWarning("Position is already occupied.");
                 return false;
             }
 
-            // Remove from old position in the dictionary
             Vector2Int oldPos = area.Position;
+
+            // Snapshot the area's accessories BEFORE moving it. area.Move() below changes area.Position,
+            // and GetAccessoryAt() reads that same field to look itself up in accessoryGrid - calling it
+            // after the move silently queries the NEW cell's (normally empty) slots instead of the old
+            // ones, so every accessory on the area would be left behind: still registered at the old
+            // global coordinate and never visually moved, while the floor relocates out from under them.
+            var carried = new List<(AccessoryBase acc, Vector2Int subGridPos)>();
+            for (int x = 0; x < SubGridSize; x++)
+            {
+                for (int y = 0; y < SubGridSize; y++)
+                {
+                    Vector2Int subGridPos = new Vector2Int(x, y);
+                    AccessoryBase acc = area.GetAccessoryAt(subGridPos);
+                    if (acc != null) carried.Add((acc, subGridPos));
+                }
+            }
+
+            // Remove from old position in the dictionary
             if (grid.ContainsKey(oldPos) && grid[oldPos] == area)
             {
                 grid.Remove(oldPos);
@@ -137,23 +180,32 @@ namespace MergesChef.Map
             grid[newPos] = area;
             area.Move(newPos, GridToWorldPosition(newPos));
 
-            // Move accessories properly
-            for (int x = 0; x < 3; x++)
+            // Re-register each carried accessory under its new global coordinate - Move() alone only
+            // updates the accessory's own position and visual, not its slot in accessoryGrid, so without
+            // this its occupancy bookkeeping would stay pointed at the cell it just left.
+            foreach (var (acc, subGridPos) in carried)
             {
-                for (int y = 0; y < 3; y++)
+                Vector2Int oldGlobal = ToGlobalSubGrid(oldPos, subGridPos);
+                Vector2Int newGlobal = ToGlobalSubGrid(newPos, subGridPos);
+
+                RemoveAccessoryAtGlobal(oldGlobal);
+                if (TryPlaceAccessoryAtGlobal(acc, newGlobal))
                 {
-                    AccessoryBase acc = area.GetAccessoryAt(new Vector2Int(x, y));
-                    if (acc != null)
-                    {
-                        // Update the accessory's logical position to the new area position
-                        acc.Move(newPos, GetAccessoryWorldPosition(newPos, new Vector2Int(x, y)));
-                    }
+                    acc.Move(newPos, GetAccessoryWorldPosition(newPos, subGridPos));
+                }
+                else
+                {
+                    // Destination subgrid slot is already claimed by something else (pre-existing
+                    // corrupt/orphaned data). Leave this accessory registered at its old slot rather
+                    // than silently dropping it or overwriting the occupant.
+                    TryPlaceAccessoryAtGlobal(acc, oldGlobal);
+                    Debug.LogWarning($"Could not carry accessory to {newGlobal} - slot already occupied.");
                 }
             }
 
             // Update visuals for the moved area and its new/old neighbors
             UpdateMapVisuals();
-            
+
             SaveMap();
 
             return true;
@@ -573,9 +625,28 @@ namespace MergesChef.Map
                  grid[pos] = area;
                  area.Move(pos, GridToWorldPosition(pos));
                  UpdateMapVisuals();
-                 
+
                  SaveMap();
              }
+        }
+
+        /// <summary>Colours the cell currently under a dragged object green (accepted) or red (refused).</summary>
+        public void ShowDropHighlight(Vector2Int cell, bool isValid)
+        {
+            if (gridVisualizer != null) gridVisualizer.ShowCellHighlight(cell, layoutGrid, isValid);
+        }
+
+        public void HideDropHighlight()
+        {
+            if (gridVisualizer != null) gridVisualizer.HideCellHighlight();
+        }
+
+        private static WallState ComputeWallState(bool hasTopNeighbor, bool hasRightNeighbor)
+        {
+            if (hasRightNeighbor && hasTopNeighbor) return WallState.Regular;
+            if (!hasRightNeighbor && !hasTopNeighbor) return WallState.Corner;
+            if (hasRightNeighbor) return WallState.LeftWall;
+            return WallState.RightWall;
         }
 
         public void UpdateMapVisuals()
@@ -585,15 +656,8 @@ namespace MergesChef.Map
                 Vector2Int pos = area.Position;
                 bool hasTopNeighbor = grid.ContainsKey(pos + Vector2Int.up);
                 bool hasRightNeighbor = grid.ContainsKey(pos + Vector2Int.right);
-                
-                WallState state = WallState.Regular;
 
-                if (hasRightNeighbor && hasTopNeighbor) state = WallState.Regular;
-                else if (!hasRightNeighbor && !hasTopNeighbor) state = WallState.Corner;
-                else if (hasRightNeighbor) state = WallState.LeftWall;
-                else if (hasTopNeighbor) state = WallState.RightWall;
-
-                area.UpdateWallState(state);
+                area.UpdateWallState(ComputeWallState(hasTopNeighbor, hasRightNeighbor));
             }
 
             if (currentMode == GameMode.BuildMode && gridVisualizer != null)
@@ -685,29 +749,46 @@ namespace MergesChef.Map
                 // Find empty spot adjacent to existing grid
                 bool placed = false;
                 Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-                foreach (var kvp in grid)
-                {
-                    foreach (var dir in dirs)
-                    {
-                        Vector2Int candidate = kvp.Key + dir;
-                        if (!grid.ContainsKey(candidate))
-                        {
-                            logic.Move(candidate, GridToWorldPosition(candidate));
-                            grid[candidate] = logic;
-                            UpdateMapVisuals();
-                            placed = true;
-                            break;
-                        }
-                    }
-                    if (placed) break;
-                }
 
-                if (!placed) // Fallback if grid is empty
+                if (grid.Count == 0)
                 {
+                    // Bootstrap case: nothing exists yet, so (0,0) can't possibly overlap anything.
                     logic.Move(Vector2Int.zero, GridToWorldPosition(Vector2Int.zero));
                     grid[Vector2Int.zero] = logic;
                     UpdateMapVisuals();
+                    placed = true;
                 }
+                else
+                {
+                    foreach (var kvp in grid)
+                    {
+                        foreach (var dir in dirs)
+                        {
+                            Vector2Int candidate = kvp.Key + dir;
+                            if (!grid.ContainsKey(candidate))
+                            {
+                                logic.Move(candidate, GridToWorldPosition(candidate));
+                                grid[candidate] = logic;
+                                UpdateMapVisuals();
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+                }
+
+                if (!placed)
+                {
+                    // No empty, rule-abiding cell was found anywhere adjacent to the existing map.
+                    // Previously this fell back to grid[(0,0)] = logic unconditionally, which silently
+                    // overwrote whatever area already occupied that cell - a real area-on-area overlap
+                    // bug. Fail safely instead, matching the accessory placement failure below.
+                    Debug.LogWarning("No valid space available for this area!");
+                    Destroy(visualInstance);
+                    return;
+                }
+
                 SaveMap();
                 return;
             }

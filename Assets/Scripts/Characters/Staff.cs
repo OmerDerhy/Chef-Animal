@@ -20,9 +20,19 @@ namespace MergesChef.Characters
         
         [Header("Staff Settings")]
         public float cookingDuration = 3f;
-        
+
         [Tooltip("Where the dish should be held (X, Y). X will flip automatically when they turn around.")]
         private Vector2 dishHoldOffset = new Vector2(2f, -0.5f); // Default guess for the 'hand' position
+
+        [Header("Staff Marker Icon")]
+        [Tooltip("Shown above this staff member's head at all times, twinkling gently, to mark them as staff.")]
+        public Sprite starSprite;
+        [Tooltip("World-space size of the star icon.")]
+        public Vector3 statusIconScale = new Vector3(0.20f, 0.20f, 1f);
+        [Tooltip("How far above the staff's own position (world units) the icon sits.")]
+        public float statusIconHeightOffset = 0.35f;
+
+        private FloatingStatusIcon staffStar;
 
         private float cookingTimer = 0f;
         private Customer targetCustomer;
@@ -36,13 +46,10 @@ namespace MergesChef.Characters
         // Test variables
         private float wanderWaitTimer = 0f;
         private float wanderWaitDuration = 2f;
-        
-        private MergesChef.Map.Map mapManager;
 
         protected override void Start()
         {
             base.Start();
-            mapManager = FindObjectOfType<MergesChef.Map.Map>();
 
             // Create the held-dish sprite renderer as a child automatically
             dishHolderObj = new GameObject("HeldDish");
@@ -52,9 +59,23 @@ namespace MergesChef.Characters
             heldDishRenderer.sortingLayerName = spriteRenderer != null ? spriteRenderer.sortingLayerName : "Default";
             heldDishRenderer.sortingOrder = (spriteRenderer != null ? spriteRenderer.sortingOrder : 0) + 1;
             heldDishRenderer.enabled = false;
-            
+
+            ShowStaffStar();
+
             currentState = StaffState.WanderingTest;
             PickRandomWanderTarget();
+        }
+
+        private Vector3 StatusIconWorldPosition()
+        {
+            return transform.position + Vector3.up * statusIconHeightOffset;
+        }
+
+        private void ShowStaffStar()
+        {
+            if (starSprite == null) return;
+            staffStar = FloatingStatusIcon.Create(starSprite, StatusIconWorldPosition(), statusIconScale);
+            staffStar.PlayTwinkle();
         }
 
         private void PickRandomWanderTarget()
@@ -82,6 +103,9 @@ namespace MergesChef.Characters
 
         protected override void UpdateLogic()
         {
+            // The star marker follows the staff member regardless of what they're doing.
+            if (staffStar != null) staffStar.SetPosition(StatusIconWorldPosition());
+
             // Update the dish position so it stays in the hand and flips when they turn left/right!
             if (dishHolderObj != null && spriteRenderer != null)
             {
@@ -238,6 +262,32 @@ namespace MergesChef.Characters
             currentState = StaffState.WanderingTest;
             wanderWaitTimer = 0f;
             PickRandomWanderTarget();
+        }
+
+        public override void SetStatusIconsVisible(bool visible)
+        {
+            if (staffStar != null) staffStar.SetVisible(visible);
+        }
+
+        /// <summary>
+        /// Staff render BEHIND kitchen/restaurant accessories (AccessoryVisual's band, 20000) while
+        /// still staying above the floor/walls (AreaVisual's band, ~16000) - a flat band of its own,
+        /// below Animal's default (25000, which Customer keeps using so customers still draw in front
+        /// of tables/chairs as before). Real world-Y only matters within a band, so this is purely
+        /// about which band Staff competes in, not where they stand.
+        /// </summary>
+        public override void UpdateSortingOrder()
+        {
+            ApplySortingOrder(0, 0, 18000);
+        }
+
+        private void OnDestroy()
+        {
+            if (staffStar != null)
+            {
+                staffStar.StopAndDestroy();
+                staffStar = null;
+            }
         }
     }
 }

@@ -23,47 +23,28 @@ namespace MergesChef.Map
         public GameObject leftWallVisual;
         public GameObject rightWallVisual;
         public GameObject cornerVisual;
-        
+
         public WallState CurrentState { get; private set; }
 
         private System.Collections.Generic.Dictionary<SpriteRenderer, int> originalSortingOrders;
-        
-        private SpriteRenderer[] renderers;
-        private Color originalColor = Color.white;
-        private Vector3 originalScale = Vector3.one;
 
-        private void Awake()
+        // Areas are large, so they swell less than accessories when selected.
+        protected override float SelectScaleFactor => MergesChef.Feel.Juice.AreaSelectScale;
+
+        protected override void Awake()
         {
-            originalScale = transform.localScale;
-            
+            base.Awake();
+
             // Auto-assign references if you forgot to drag them in the Inspector!
             if (regularVisual == null) regularVisual = FindChild("Regular");
             if (leftWallVisual == null) leftWallVisual = FindChild("LeftWall");
             if (rightWallVisual == null) rightWallVisual = FindChild("RightWall");
             if (cornerVisual == null) cornerVisual = FindChild("Corner");
 
-            renderers = GetComponentsInChildren<SpriteRenderer>(true);
-            if (renderers.Length > 0)
-            {
-                originalColor = renderers[0].color;
-            }
-
             originalSortingOrders = new System.Collections.Generic.Dictionary<SpriteRenderer, int>();
-            foreach (var sr in renderers)
+            foreach (var sr in cachedRenderers)
             {
                 originalSortingOrders[sr] = sr.sortingOrder;
-            }
-        }
-
-        public void SetSelected(bool isSelected)
-        {
-            // Scale up slightly relative to the original scale
-            transform.localScale = isSelected ? originalScale * 1.05f : originalScale; // slightly less scale for area since it's big
-            
-            Color targetColor = isSelected ? new Color(1.2f, 1.2f, 1.2f, 1f) : originalColor;
-            foreach (var sr in renderers)
-            {
-                sr.color = targetColor;
             }
         }
 
@@ -97,6 +78,11 @@ namespace MergesChef.Map
             UpdateSortingOrder();
         }
 
+        // Base sorting band for areas. Real world-Y (via ApplySortingOrder) dominates area-vs-area
+        // ordering; these nudges only settle an exact Y tie (anti-diagonal neighbors in this skewed
+        // grid), so they must stay far smaller than one grid row's real depth difference (~42 units).
+        private const int AreaBand = 16000;
+
         public override void UpdateSortingOrder()
         {
             int gridX = 0;
@@ -107,13 +93,13 @@ namespace MergesChef.Map
                 gridY = LinkedArea.Position.y;
             }
 
-            int typeOffset = 15000;
+            int typeOffset = AreaBand;
             switch (CurrentState)
             {
-                case WallState.Regular: typeOffset = 17000; break;
-                case WallState.LeftWall: typeOffset = 16000; break;
-                case WallState.RightWall: typeOffset = 16000; break;
-                case WallState.Corner: typeOffset = 15000; break;
+                case WallState.Regular: typeOffset = AreaBand + 0; break;
+                case WallState.LeftWall: typeOffset = AreaBand + 1; break;
+                case WallState.RightWall: typeOffset = AreaBand + 1; break;
+                case WallState.Corner: typeOffset = AreaBand + 2; break;
             }
 
             ApplySortingOrder(gridX, gridY, typeOffset);

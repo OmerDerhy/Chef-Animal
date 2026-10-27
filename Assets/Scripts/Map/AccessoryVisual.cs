@@ -10,33 +10,6 @@ namespace MergesChef.Map
         [Header("Visual Variations")]
         public GameObject[] visualVariations;
 
-        private SpriteRenderer[] renderers;
-        private Color originalColor = Color.white;
-        private Vector3 originalScale = Vector3.one;
-
-        private void Awake()
-        {
-            originalScale = transform.localScale;
-
-            renderers = GetComponentsInChildren<SpriteRenderer>(true);
-            if (renderers.Length > 0)
-            {
-                originalColor = renderers[0].color;
-            }
-        }
-
-        public void SetSelected(bool isSelected)
-        {
-            // Scale up slightly relative to the original scale
-            transform.localScale = isSelected ? originalScale * 1.1f : originalScale;
-            
-            Color targetColor = isSelected ? new Color(1.2f, 1.2f, 1.2f, 1f) : originalColor;
-            foreach (var sr in renderers)
-            {
-                sr.color = targetColor;
-            }
-        }
-
         public void SetVariation(int index)
         {
             if (visualVariations == null || visualVariations.Length == 0) return;
@@ -89,7 +62,6 @@ namespace MergesChef.Map
                 subY = LinkedAccessory.SubGridPosition.y;
             }
 
-            // High type offset (20000) so they always draw on top of their own floor tile (15000-17000)
             ApplySortingOrder(gridX, gridY, 20000, subX, subY);
         }
     }

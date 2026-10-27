@@ -85,6 +85,7 @@ namespace MergesChef.Map
         // GameObject is not easily serializable for cross-session saves (like JSON),
         // so we exclude it. We can add a prefab ID or rely on the game manager to bind this.
         [NonSerialized] protected GameObject visualModel;
+        public GameObject VisualModel => visualModel;
 
         public Vector2Int Position => position;
 
@@ -132,7 +133,12 @@ namespace MergesChef.Map
         public virtual void Upgrade()
         {
             level++;
-            // costToUpgrade logic can be implemented here (e.g., doubling the cost)
+            costToUpgrade = Mathf.RoundToInt(costToUpgrade * 1.5f);
+
+            // Each level is a whole separate visual prefab (e.g. "ResturantVisual 2"), not a sprite
+            // swap on the existing one, so upgrading swaps the GameObject out entirely.
+            MapInitializer.Instance?.RebuildAreaVisual(this);
+
             ApplyUpgradeEffect();
         }
 

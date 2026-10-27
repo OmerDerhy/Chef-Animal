@@ -1,0 +1,18 @@
+Act as an expert Unity C# game developer. I am going to provide you with the core scripts from my current game project. 
+
+IMPORTANT: Please limit your context and focus ONLY on the scripts provided from these three folders: `Map`, `UI`, and `Characters`. 
+
+First, review the code to understand the current architecture, state management, and how these three modules interact. Do not write any code yet. Just confirm you understand the structure.
+
+Once you have learned the code, I need you to plan and implement two major upgrades:
+
+1. Map Interaction (Clash of Clans style): 
+Refactor and improve the current system for moving objects and characters on the map. I want it to feel as smooth and intuitive as Clash of Clans. This includes responsive drag-and-drop mechanics, smooth grid snapping (if applicable), and clear visual feedback when an object is selected or moved.
+
+2. UI & Micro-interactions (Brawl Stars style):
+Upgrade the Shop UI and general in-game interactions to make them feel "juicy" and addictive, taking inspiration from Brawl Stars. I want you to add polished visual effects to objects and UI elements—like scaling up/down on tap (squash and stretch), pop-in/pop-out effects, bouncy transitions, and satisfying visual feedback for purchases or interactions. Please utilize DOTween or Unity Coroutines for these animations.
+
+Rules for your response:
+- Do not rewrite entire files. Provide only the specific methods, classes, or properties that need to be changed or added (use diffs).
+- Maintain backward compatibility with my existing logic. Do not break the core game loop.
+- Start by giving me a high-level, step-by-step plan of how we are going to implement these features. Wait for my approval before generating the final code.
